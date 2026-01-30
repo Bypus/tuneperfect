@@ -163,7 +163,7 @@ export function SortTooltip(props: SortTooltipProps) {
   });
 
   return (
-    <div class="pointer-events-none absolute top-0 right-0">
+    <div class="pointer-events-none absolute top-50 right-0">
       <div class="rounded-xl bg-black/50 px-6 py-4 text-white shadow-xl backdrop-blur-md">
         <span class="font-semibold text-xs uppercase tracking-wide opacity-80">{t(`sing.sort.${props.sort}`)}</span>
         <span class="mt-1 block font-semibold text-lg">{visibleSortInfo()}</span>
