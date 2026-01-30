@@ -2,11 +2,13 @@ import * as i18n from "@solid-primitives/i18n";
 import { createMemo } from "solid-js";
 import * as de from "~/i18n/de";
 import * as en from "~/i18n/en";
+import * as fr from "~/i18n/fr";
 import { settingsStore } from "~/stores/settings";
 
 const dictionaries = {
   en: en.dict,
   de: de.dict,
+  fr: fr.dict,
 };
 export type Locale = keyof typeof dictionaries;
 export type Dictionary = i18n.Flatten<en.Dict>;

@@ -27,6 +27,7 @@ interface SongGridProps {
   initialSong?: LocalSong;
   onSelectedItemChange?: (item: LocalSong | null, index: number) => void;
   onFilteredCountChange?: (count: number) => void;
+  onVisibleItemsChange?: (items: LocalSong[]) => void;
   onScrollingChange?: (isScrolling: boolean) => void;
   onConfirm?: (item: LocalSong) => void;
   class?: string;
@@ -39,6 +40,8 @@ export function SongGrid(props: SongGridProps) {
   const [selectedHash, setSelectedHash] = createSignal<string | null>(null);
   const [hasInitialized, setHasInitialized] = createSignal(false);
   const [rowHeight, setRowHeight] = createSignal(120);
+  const [scrollTop, setScrollTop] = createSignal(0);
+  const [viewportHeight, setViewportHeight] = createSignal(0);
 
   const { filteredItems } = useSongFilter({
     items: () => props.items,
@@ -64,7 +67,38 @@ export function SongGrid(props: SongGridProps) {
     },
     getScrollElement: () => containerRef,
     estimateSize: () => rowHeight(),
-    overscan: 3,
+    overscan: 0,
+  });
+
+  const visibleItems = createMemo(() => {
+    // Get the actual virtual items being rendered
+    const virtualItems = virtualizer.getVirtualItems();
+    const height = rowHeight();
+    const viewHeight = viewportHeight();
+    const scroll = scrollTop();
+    
+    if (height === 0 || viewHeight === 0 || virtualItems.length === 0) return [];
+
+    // Calculate the actual visible viewport bounds
+    const viewportTop = scroll;
+    const viewportBottom = scroll + viewHeight;
+
+    const result: LocalSong[] = [];
+    const allRows = rows();
+
+    // Only include rows that are actually visible in the viewport (no overscan)
+    for (const virtualRow of virtualItems) {
+      const rowTop = virtualRow.start + VERTICAL_PADDING;
+      const rowBottom = virtualRow.end + VERTICAL_PADDING;
+
+      // Check if this row intersects with the viewport
+      if (rowBottom > viewportTop && rowTop < viewportBottom) {
+        const rowItems = allRows[virtualRow.index] ?? [];
+        result.push(...rowItems);
+      }
+    }
+    
+    return result;
   });
 
   onMount(() => {
@@ -73,19 +107,33 @@ export function SongGrid(props: SongGridProps) {
       const containerWidth = containerRef.clientWidth;
       const cardWidth = (containerWidth - PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
       setRowHeight(cardWidth + GAP);
+      setViewportHeight(containerRef.clientHeight);
       virtualizer.measure();
     };
 
     measureRowHeight();
 
+    const handleScroll = () => {
+      setScrollTop(containerRef.scrollTop);
+    };
+
+    containerRef.addEventListener("scroll", handleScroll, { passive: true });
+
     const resizeObserver = new ResizeObserver(measureRowHeight);
     resizeObserver.observe(containerRef);
 
-    onCleanup(() => resizeObserver.disconnect());
+    onCleanup(() => {
+      containerRef.removeEventListener("scroll", handleScroll);
+      resizeObserver.disconnect();
+    });
   });
 
   createEffect(() => {
     props.onFilteredCountChange?.(filteredItems().length);
+  });
+
+  createEffect(() => {
+    props.onVisibleItemsChange?.(visibleItems());
   });
 
   createEffect(
@@ -135,10 +183,13 @@ export function SongGrid(props: SongGridProps) {
       if (currentHash) {
         const newIndex = items.findIndex((item) => item.hash === currentHash);
         if (newIndex !== -1) {
-          setSelectedIndex(newIndex);
-          scrollToIndex(newIndex, false);
-          props.onSelectedItemChange?.(items[newIndex]!, newIndex);
-          return;
+          const nextItem = items[newIndex];
+          if (nextItem) {
+            setSelectedIndex(newIndex);
+            scrollToIndex(newIndex, false);
+            props.onSelectedItemChange?.(nextItem, newIndex);
+            return;
+          }
         }
       }
 
@@ -271,7 +322,7 @@ export function SongGrid(props: SongGridProps) {
 
             return (
               <div
-                class="absolute left-0 top-0 grid w-full grid-cols-5 gap-3 px-4"
+                class="absolute top-0 left-0 grid w-full grid-cols-5 gap-3 px-4"
                 style={{ transform: `translateY(${virtualRow.start + VERTICAL_PADDING}px)` }}
               >
                 <For each={rowItems()}>
@@ -306,10 +357,10 @@ function SongGridCard(props: SongGridCardProps) {
   return (
     <div
       class="relative aspect-square w-full cursor-pointer overflow-hidden rounded-lg shadow-md transition-all duration-150 active:scale-95"
-      classList={{ "ring-4 ring-white scale-105": props.selected }}
+      classList={{ "scale-105 ring-4 ring-white": props.selected }}
     >
       <img class="h-full w-full object-cover" src={props.song.coverUrl ?? ""} alt={props.song.title} />
-      <div class="absolute inset-0 -z-1 bg-black" />
+      <div class="-z-1 absolute inset-0 bg-black" />
     </div>
   );
 }

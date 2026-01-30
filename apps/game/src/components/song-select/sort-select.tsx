@@ -9,7 +9,7 @@ import IconTriangleLeft from "~icons/sing/triangle-left";
 import IconTriangleRight from "~icons/sing/triangle-right";
 import type { SortOption } from "./song-scroller";
 
-const SORT_OPTIONS: SortOption[] = ["artist", "title", "year"];
+const SORT_OPTIONS: SortOption[] = ["artist", "title", "year", "language"];
 
 interface SortSelectProps {
   selected: SortOption;

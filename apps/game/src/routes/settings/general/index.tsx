@@ -9,6 +9,7 @@ import { t } from "~/lib/i18n";
 import { settingsStore } from "~/stores/settings";
 import IconDe from "~icons/circle-flags/de";
 import IconEnUs from "~icons/circle-flags/en-us";
+import IconFr from "~icons/circle-flags/fr";
 
 export const Route = createFileRoute("/settings/general/")({
   component: GeneralSettingsComponent,
@@ -32,7 +33,7 @@ function GeneralSettingsComponent() {
       type: "select-string",
       label: t("settings.sections.general.language"),
       value: () => general().language,
-      options: ["en", "de"],
+      options: ["en", "de", "fr"],
       onChange: (value) => setGeneral({ ...general(), language: value }),
       renderValue: () => {
         if (general().language === "en") {
@@ -40,6 +41,9 @@ function GeneralSettingsComponent() {
         }
         if (general().language === "de") {
           return <IconDe />;
+        }
+        if (general().language === "fr") {
+          return <IconFr />;
         }
       },
     },

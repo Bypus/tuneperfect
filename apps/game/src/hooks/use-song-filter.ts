@@ -3,7 +3,7 @@ import MiniSearch from "minisearch";
 import { type Accessor, createEffect, createMemo, createSignal } from "solid-js";
 import type { LocalSong } from "~/lib/ultrastar/song";
 
-export type SortOption = "artist" | "title" | "year";
+export type SortOption = "artist" | "title" | "year" | "language";
 export type SearchFilter = "all" | "artist" | "title" | "year" | "genre" | "language" | "edition" | "creator";
 
 const ALL_SEARCH_FIELDS = ["title", "artist", "genre", "language", "edition", "creator"] as const;
@@ -107,6 +107,11 @@ export function useSongFilter(options: UseSongFilterOptions): UseSongFilterResul
       }
       if (sort === "year") {
         return (a.year ?? 0) - (b.year ?? 0) || compare(a.artist, b.artist) || compare(a.title, b.title);
+      }
+      if (sort === "language") {
+        return (
+          compare(a.language ?? "", b.language ?? "") || compare(a.artist, b.artist) || compare(a.title, b.title)
+        );
       }
       return 0;
     });

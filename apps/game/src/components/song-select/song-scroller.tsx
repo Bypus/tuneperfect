@@ -42,6 +42,7 @@ interface SongScrollerProps {
   children: (item: LocalSong, index: number, scale: Accessor<number>) => JSX.Element;
   onCenteredItemChange?: (item: LocalSong | null, index: number) => void;
   onFilteredCountChange?: (count: number) => void;
+  onVisibleItemsChange?: (items: LocalSong[]) => void;
   onScrollingChange?: (isScrolling: boolean) => void;
   onConfirm?: (item: LocalSong) => void;
   class?: string;
@@ -194,6 +195,10 @@ export function SongScroller(props: SongScrollerProps) {
       result.push({ item: items[songIndex]!, position });
     }
     return result;
+  });
+
+  createEffect(() => {
+    props.onVisibleItemsChange?.(visibleItems().map((item) => item.item));
   });
 
   const itemTransforms = createMemo(() => {

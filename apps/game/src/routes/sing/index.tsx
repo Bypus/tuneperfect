@@ -19,6 +19,7 @@ import {
   type SortOption,
 } from "~/components/song-select/song-scroller";
 import { SortSelect } from "~/components/song-select/sort-select";
+import { SortTooltip } from "~/components/song-select/sort-tooltip";
 import TitleBar from "~/components/title-bar";
 import { keyMode, useNavigation } from "~/hooks/navigation";
 import { t } from "~/lib/i18n";
@@ -48,6 +49,7 @@ const [menuOpen, setMenuOpen] = createSignal(false);
 const [sort, setSort] = createSignal<SortOption>("artist");
 const [filteredSongCount, setFilteredSongCount] = createSignal(0);
 const [medleySongs, setMedleySongs] = createSignal<LocalSong[]>([]);
+const [visibleSongs, setVisibleSongs] = createSignal<LocalSong[]>([]);
 
 function SingComponent() {
   const navigate = useNavigate();
@@ -159,11 +161,12 @@ function SingComponent() {
   };
 
   const moveSorting = (direction: "left" | "right") => {
-    const SORT_OPTIONS: SortOption[] = ["artist", "title", "year"];
+    const SORT_OPTIONS: SortOption[] = ["artist", "title", "year", "language"];
     const currentIndex = SORT_OPTIONS.indexOf(sort());
     const newIndex = (currentIndex + (direction === "left" ? -1 : 1) + SORT_OPTIONS.length) % SORT_OPTIONS.length;
     setSort(SORT_OPTIONS[newIndex] || "artist");
   };
+
 
   useNavigation({
     onKeydown(event) {
@@ -238,74 +241,78 @@ function SingComponent() {
         </div>
       }
       header={
-        <div class="flex items-center justify-between gap-20">
-          <div class="flex items-center gap-20">
-            <TitleBar title={t("sing.songs")} onBack={onBack} />
-            <div class="relative flex items-center gap-4">
-              <SearchButton
-                searchQuery={searchQuery()}
-                searchFilter={searchFilter()}
-                onClick={() => setSearchPopupOpen(true)}
-              />
-
-              <Show when={searchPopupOpen()}>
-                <SearchPopup
+        <div class="relative">
+          <div class="flex items-center justify-between gap-20">
+            <div class="flex items-center gap-20">
+              <TitleBar title={t("sing.songs")} onBack={onBack} />
+              <div class="relative flex items-center gap-4">
+                <SearchButton
                   searchQuery={searchQuery()}
                   searchFilter={searchFilter()}
-                  onSearchQuery={setSearchQuery}
-                  onSearchFilter={setSearchFilter}
-                  onClose={() => setSearchPopupOpen(false)}
+                  onClick={() => setSearchPopupOpen(true)}
+                />
+
+                <Show when={searchPopupOpen()}>
+                  <SearchPopup
+                    searchQuery={searchQuery()}
+                    searchFilter={searchFilter()}
+                    onSearchQuery={setSearchQuery}
+                    onSearchFilter={setSearchFilter}
+                    onClose={() => setSearchPopupOpen(false)}
+                  />
+                </Show>
+
+                <div class="flex items-center gap-2 text-sm opacity-80">
+                  <IconMusic />
+                  <Show
+                    when={filteredSongCount() !== songs().length}
+                    fallback={
+                      <span>
+                        {songs().length === 1
+                          ? t("sing.songCount.one", { count: songs().length })
+                          : t("sing.songCount.other", { count: songs().length })}
+                      </span>
+                    }
+                  >
+                    <span>{t("sing.songCount.filtered", { filtered: filteredSongCount(), total: songs().length })}</span>
+                  </Show>
+                </div>
+              </div>
+            </div>
+
+            <div class="relative">
+              <button
+                type="button"
+                class="flex cursor-pointer items-center gap-2 transition-all hover:opacity-75 active:scale-95"
+                onClick={() => setMenuOpen(true)}
+              >
+                <Show when={keyMode() === "keyboard"} fallback={<IconGamepadX class="text-sm" />}>
+                  <IconTabKey class="text-sm" />
+                </Show>
+                <IconMenu class="text-2xl" />
+              </button>
+
+              <Show when={menuOpen()}>
+                <MenuPopup
+                  onClose={() => setMenuOpen(false)}
+                  onStartRandomMedley={() => {
+                    startRandomMedley();
+                    setMenuOpen(false);
+                  }}
+                  onAddToMedley={() => {
+                    const song = currentSong();
+                    if (song) {
+                      setMedleySongs((prev) => [...prev, song]);
+                      playSound("select");
+                    }
+                    setMenuOpen(false);
+                  }}
                 />
               </Show>
-
-              <div class="flex items-center gap-2 text-sm opacity-80">
-                <IconMusic />
-                <Show
-                  when={filteredSongCount() !== songs().length}
-                  fallback={
-                    <span>
-                      {songs().length === 1
-                        ? t("sing.songCount.one", { count: songs().length })
-                        : t("sing.songCount.other", { count: songs().length })}
-                    </span>
-                  }
-                >
-                  <span>{t("sing.songCount.filtered", { filtered: filteredSongCount(), total: songs().length })}</span>
-                </Show>
-              </div>
             </div>
           </div>
 
-          <div class="relative">
-            <button
-              type="button"
-              class="flex cursor-pointer items-center gap-2 transition-all hover:opacity-75 active:scale-95"
-              onClick={() => setMenuOpen(true)}
-            >
-              <Show when={keyMode() === "keyboard"} fallback={<IconGamepadX class="text-sm" />}>
-                <IconTabKey class="text-sm" />
-              </Show>
-              <IconMenu class="text-2xl" />
-            </button>
-
-            <Show when={menuOpen()}>
-              <MenuPopup
-                onClose={() => setMenuOpen(false)}
-                onStartRandomMedley={() => {
-                  startRandomMedley();
-                  setMenuOpen(false);
-                }}
-                onAddToMedley={() => {
-                  const song = currentSong();
-                  if (song) {
-                    setMedleySongs((prev) => [...prev, song]);
-                    playSound("select");
-                  }
-                  setMenuOpen(false);
-                }}
-              />
-            </Show>
-          </div>
+          <SortTooltip sort={sort()} visibleSongs={visibleSongs()} />
         </div>
       }
       background={
@@ -337,7 +344,7 @@ function SingComponent() {
       <Switch>
         <Match when={songSelectStyle() === "grid"}>
           <div class="relative flex h-full min-h-0 gap-8">
-            <div class="relative w-1/2 -ml-8">
+            <div class="-ml-8 relative w-1/2">
               <SongGrid
                 ref={gridRef}
                 items={songs()}
@@ -348,6 +355,7 @@ function SingComponent() {
                 class="absolute inset-0"
                 onSelectedItemChange={handleCenteredItemChange}
                 onFilteredCountChange={setFilteredSongCount}
+                onVisibleItemsChange={setVisibleSongs}
                 onScrollingChange={setIsScrolling}
                 onConfirm={startRegular}
               />
@@ -425,6 +433,7 @@ function SingComponent() {
               class="-mx-16 h-60 w-[calc(100%+8cqw)]"
               onCenteredItemChange={handleCenteredItemChange}
               onFilteredCountChange={setFilteredSongCount}
+              onVisibleItemsChange={setVisibleSongs}
               onScrollingChange={setIsScrolling}
               onConfirm={startRegular}
             >

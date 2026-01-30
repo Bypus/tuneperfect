@@ -83,6 +83,7 @@ const de = {
       artist: "Künstler",
       title: "Titel",
       year: "Jahr",
+      language: "Sprache",
     },
     songCount: {
       one: "{{count}} Lied",

@@ -83,6 +83,7 @@ const en = {
       artist: "Artist",
       title: "Title",
       year: "Year",
+      language: "Language",
     },
     songCount: {
       one: "{{count}} song",
